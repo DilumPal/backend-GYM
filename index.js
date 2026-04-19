@@ -5,10 +5,13 @@ import productRouter from "./routes/productRoutes.js";
 import userRouter from "./routes/userRoutes.js";
 import jwt from "jsonwebtoken";
 import orderRouter from "./routes/orderRoute.js";
+import cors from 'cors';
 
 const app = express();
 
+app.use(cors());
 app.use(bodyParser.json());
+
 app.use(
     (req, res, next) => {
         const tokenString = req.header("Authorization");
@@ -41,9 +44,9 @@ mongoose.connect("mongodb+srv://admin:123@cluster0.oigmmnt.mongodb.net/?appName=
         console.log("Database connection failed");
     })
 
-app.use("/products", productRouter)
-app.use("/users", userRouter)
-app.use("/orders", orderRouter)
+app.use("/api/products", productRouter)
+app.use("/api/users", userRouter)
+app.use("/api/orders", orderRouter)
 
 app.listen(3000, () => {
     console.log("Server is running on port 3000");
