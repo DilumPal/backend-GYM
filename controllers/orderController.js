@@ -60,13 +60,13 @@ export async function createOrder(req, res) {
                     altNames : item.altNames,
                     description : item.description,
                     images : item.images,
-                    labelledPrice : item.labaledPrice,
+                    labelledPrice : item.labelledPrice,
                     price : item.price
                 },
                 quantity : orderInfo.products[i].qty
             }
             total += (item.price* orderInfo.products[i].qty)
-            labelledTotal += (item.labaledPrice * orderInfo.products[i].qty)
+            labelledTotal += (item.labelledPrice * orderInfo.products[i].qty)
         }
 
         const order = new Order({
