@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import axios from "axios";
+import nodemailer from "nodemailer";
 
 export function createUser(req, res) {
 
@@ -97,40 +98,6 @@ export async function loginWithGoogle(req, res){
     const user = await User.findOne({
         email: response.data.email
     })
-    /*
-    email : {
-        type: String,
-        required: true,
-        unique: true
-    },
-    firstName : {
-        type : String,
-        required: true
-    },
-    lastName : {
-        type : String,
-        required : true
-    },
-    password : {
-        type : String,
-        required : true
-    },
-    role : {
-        type : String,
-        required : true,
-        default : "customer"
-    },
-    isBlocked : {
-        type : Boolean,
-        required : true,
-        default : false
-    },
-    img : {
-        type : String,
-        required : false,
-        default : "https://media.istockphoto.com/id/1300845620/vector/user-icon-flat-isolated-on-white-background-user-symbol-vector-illustration.jpg?s=2048x2048&w=is&k=20&c=6hQNACQQjktni8CxSS_QSPqJv2tycskYmpFGzxv3FNs="
-    }
-    */
 
     if(user == null){
         const newUser = new User(
@@ -175,6 +142,48 @@ export async function loginWithGoogle(req, res){
             role: user.role
         })
     }
+}
+
+const transport = nodemailer.createTransport({
+    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    auth: {
+        user: process.env.EMAIL,
+        pass: process.env.EMAIL_PASSWORD
+    }
+})
+export async function sendOTP(req, res){
+    const randomOTP = Math.floor(100000 + Math.random() * 900000);
+    const email = req.body.email;
+    if(email == null){
+        res.status(400).json({
+            message: "Email is required"
+        });
+        return;
+    }
+
+    const message = {
+        from : process.env.EMAIL,
+        to: email,
+        subject: "Resetting password for fitNova",
+        text: "This is your password reset OTP : " + randomOTP
+    }
+
+    transport.sendMail(message,(error, info)=>{
+        if(error){
+            res.status(500).json({
+                message: "Failed to send OTP",
+                error: error
+            });
+        }else{
+            res.json({
+                message: "OTP sent successfully",
+                otp: randomOTP
+            });
+        }
+    })
 }
 
 export function isAdmin(req){
