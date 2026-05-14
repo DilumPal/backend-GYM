@@ -4,6 +4,8 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import axios from "axios";
 import nodemailer from "nodemailer";
+import bodyParser from "body-parser";
+import OTP from "../models/otp.js";
 
 export function createUser(req, res) {
 
@@ -144,7 +146,7 @@ export async function loginWithGoogle(req, res){
     }
 }
 
-const transport = nodemailer.createTransport({
+/*const transport = nodemailer.createTransport({
     service: 'gmail',
     host: 'smtp.gmail.com',
     port: 465,
@@ -153,37 +155,105 @@ const transport = nodemailer.createTransport({
         user: process.env.EMAIL,
         pass: process.env.EMAIL_PASSWORD
     }
-})
-export async function sendOTP(req, res){
-    const randomOTP = Math.floor(100000 + Math.random() * 900000);
+})*/
+// Remove the transport definition from the top of the file
+
+export async function sendOTP(req, res) {
     const email = req.body.email;
-    if(email == null){
-        res.status(400).json({
-            message: "Email is required"
-        });
-        return;
+    
+    // 1. Move transport inside the function
+    const transport = nodemailer.createTransport({
+        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: {
+            user: process.env.EMAIL,
+            pass: process.env.EMAIL_PASSWORD
+        }
+    });
+
+    const randomOTP = Math.floor(100000 + Math.random() * 900000);
+    
+    if (!email) {
+        return res.status(400).json({ message: "Email is required" });
     }
 
+    const user = await User.findOne({
+        email: email
+    })
+    if(user == null){
+        res.status(404).json({
+            message: "User not found"
+        })
+    }
+
+    await OTP.deleteMany({
+        email: email
+    })
+
     const message = {
-        from : process.env.EMAIL,
+        from: process.env.EMAIL,
         to: email,
         subject: "Resetting password for fitNova",
         text: "This is your password reset OTP : " + randomOTP
-    }
+    };
 
-    transport.sendMail(message,(error, info)=>{
-        if(error){
+    const otp = new OTP({
+        email : email,
+        otp : randomOTP
+    })
+    await otp.save()
+
+    // 2. Add more detailed error logging to help debug
+    transport.sendMail(message, (error, info) => {
+        if (error) {
+            console.error("Detailed Auth Error:", error); // Check your server console for specifics
             res.status(500).json({
                 message: "Failed to send OTP",
                 error: error
             });
-        }else{
+        } else {
             res.json({
                 message: "OTP sent successfully",
                 otp: randomOTP
             });
         }
+    });
+}
+
+export async function resetPassword(req, res){
+    const otp = req.body.otp
+    const email = req.body.email
+    const newPassword = req.body.newPassword
+
+    const response = OTP.findOne({
+        email: email
     })
+    if(response == null){
+        res.status(500).json({
+            message: "No OTP found. Try again"
+        })
+    }
+    if(otp == response.otp){
+        await OTP.deleteMany({
+            email: email
+        })
+
+        const hashedPassword = bcrypt.hashSync(newPassword, 10)
+        const response2 = await User.updateOne(
+            {email: email},
+            {password: hashedPassword}
+        )
+        res.json({
+            message: "Password has been reset successfully"
+        })
+
+    }else{
+        res.status(403).json({
+            message: "OTPs are not matching"
+        })
+    }
 }
 
 export function isAdmin(req){
