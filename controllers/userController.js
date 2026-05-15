@@ -227,13 +227,14 @@ export async function resetPassword(req, res){
     const email = req.body.email
     const newPassword = req.body.newPassword
 
-    const response = OTP.findOne({
+    const response = await OTP.findOne({
         email: email
     })
     if(response == null){
         res.status(500).json({
             message: "No OTP found. Try again"
         })
+        return;
     }
     if(otp == response.otp){
         await OTP.deleteMany({
