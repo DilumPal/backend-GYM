@@ -128,3 +128,22 @@ export async function getProductById(req, res) {
         })
     }
 }
+
+export async function searchProduct(req, res) {
+    const searchQuery = req.query.q;
+    try {
+        const products = await Product.find({
+            $or: [
+                {name: { $regex: searchQuery, $options: 'i' }},
+                {altNames: {$elemMatch: { $regex: searchQuery, $options: 'i' }}} 
+            ],
+            isAvailable: true
+        })
+        res.json(products)
+    } catch (err) {
+        res.status(500).json({
+            message: "Internal server error",
+            error: err
+        })
+    }
+}
