@@ -63,6 +63,8 @@ export function loginUser(req, res) {
                     const token = jwt.sign({
                         email: user.email,
                         userId: user._id,
+                        firstName: user.firstName, 
+                        lastName: user.lastName,
                         role: user.role,
                         img: user.img
                     },
@@ -258,6 +260,8 @@ export async function resetPassword(req, res){
 }
 
 export function getUser(req, res) {
+    console.log("--- DEBUGGING GET USER ---");
+    console.log("Full req.user object:", req.user);
     if(req.user == null){
         res.status(403).json({
             message: "You are not authorized to view user details"
@@ -265,8 +269,12 @@ export function getUser(req, res) {
         return;
     }else{
         res.json({
-            ...req.user
-        })
+            email: req.user.email,
+            role: req.user.role,
+            firstName: req.user.firstName,
+            lastName: req.user.lastName,
+            img: req.user.img
+        });
     }
 }
 
