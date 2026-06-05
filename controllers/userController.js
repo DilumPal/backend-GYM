@@ -288,3 +288,23 @@ export function isAdmin(req){
         }
         return true;
 }
+
+export async function getAllUsers(req, res) {
+    // Reusing your existing helper function to verify admin status
+    if (!isAdmin(req)) {
+        return res.status(403).json({
+            message: "Access denied. Admin privileges required."
+        });
+    }
+
+    try {
+        // Fetch all users, excluding the password field for security
+        const users = await User.find({}, "-password");
+        res.status(200).json(users);
+    } catch (error) {
+        console.error("Error fetching all users:", error);
+        res.status(500).json({
+            message: "Internal server error while fetching user database"
+        });
+    }
+}

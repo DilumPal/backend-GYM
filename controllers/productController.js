@@ -22,7 +22,7 @@ export async function getProduct(req, res) {
 
 export function saveProduct(req, res) {
 
-    if (!isAdmin(req, res)) {
+    if (!isAdmin(req)) {
         res.status(403).json({
             message: "You are not authorized to add a product, Please login as admin first"
         })
@@ -45,14 +45,14 @@ export function saveProduct(req, res) {
 }
 
 export async function deleteProduct(req, res) {
-    if (!isAdmin(req, res)) {
+    if (!isAdmin(req)) {
         res.status(403).json({
             message: "You are not authorized to delete a product, Please login as admin first"
         })
         return;
     }
     try {
-        await Product.deleteOne({ productId: req.params.productId })
+        await Product.deleteOne({ productID: req.params.productId })
 
         res.json({
             message: "Product deleted successfully"
