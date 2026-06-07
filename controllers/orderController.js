@@ -146,3 +146,57 @@ export async function updateOrderStatus(req, res){
         return;
     }
 }
+
+export async function getBestSellers(req, res) {
+    try {
+        const bestSellers = await Order.aggregate([
+            // 1. Filter for completed orders to avoid counting pending or canceled items
+            { 
+                $match: { status: "completed" } 
+            },
+            
+            // 2. Unwind the products array so each ordered item becomes a distinct document
+            { 
+                $unwind: "$products" 
+            },
+            
+            // 3. Group by productId and sum up the total quantities sold
+            {
+                $group: {
+                    _id: "$products.productInfo.productId",
+                    name: { $first: "$products.productInfo.name" },
+                    price: { $first: "$products.productInfo.price" },
+                    // Grab the first image from the array safely
+                    img: { $first: { $arrayElemAt: ["$products.productInfo.images", 0] } },
+                    totalSold: { $sum: "$products.quantity" }
+                }
+            },
+            
+            // 4. Sort from most items sold to fewest
+            { 
+                $sort: { totalSold: -1 } 
+            },
+            
+            // 5. Limit the dataset to the top 4 items for your landing page grid
+            { 
+                $limit: 4 
+            }
+        ]);
+
+        // 6. Map the data format to cleanly match your frontend LandingPage mapping
+        const formattedProducts = bestSellers.map(item => ({
+            id: item._id,
+            name: item.name,
+            price: `Rs. ${item.price.toLocaleString()}`,
+            rating: "⭐⭐⭐⭐⭐", // Hardcoded or calculated fallback placeholder
+            img: item.img || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500"
+        }));
+
+        res.json(formattedProducts);
+    } catch (err) {
+        res.status(500).json({
+            message: "Failed to fetch best sellers",
+            error: err.message
+        });
+    }
+}
