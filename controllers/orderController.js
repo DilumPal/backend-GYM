@@ -200,8 +200,7 @@ export async function getBestSellers(req, res) {
         const formattedProducts = bestSellers.map(item => ({
             id: item._id,
             name: item.name,
-            price: `Rs. ${item.price.toLocaleString()}`,
-            rating: "⭐⭐⭐⭐⭐", 
+            price: `Rs. ${item.price.toLocaleString()}`, 
             img: item.img || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500"
         }));
 
