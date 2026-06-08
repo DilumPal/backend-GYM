@@ -150,45 +150,58 @@ export async function updateOrderStatus(req, res){
 export async function getBestSellers(req, res) {
     try {
         const bestSellers = await Order.aggregate([
-            // 1. Filter for completed orders to avoid counting pending or canceled items
-            { 
-                $match: { status: "completed" } 
-            },
-            
-            // 2. Unwind the products array so each ordered item becomes a distinct document
             { 
                 $unwind: "$products" 
             },
             
-            // 3. Group by productId and sum up the total quantities sold
+            // 3. Group by productId and calculate the total grossing revenue
             {
                 $group: {
                     _id: "$products.productInfo.productId",
                     name: { $first: "$products.productInfo.name" },
                     price: { $first: "$products.productInfo.price" },
-                    // Grab the first image from the array safely
                     img: { $first: { $arrayElemAt: ["$products.productInfo.images", 0] } },
-                    totalSold: { $sum: "$products.quantity" }
+                    grossingRevenue: { 
+                        $sum: { $multiply: ["$products.productInfo.price", "$products.quantity"] } 
+                    }
+                }
+            },
+
+            // 4. Sort everything by highest revenue first before checking live availability
+            { 
+                $sort: { grossingRevenue: -1 } 
+            },
+
+            // 5. Cross-reference with your live products collection
+            {
+                $lookup: {
+                    from: "products",         
+                    localField: "_id",        
+                    foreignField: "productID", 
+                    as: "liveProduct"
+                }
+            },
+
+            // 6. Filter out deleted or unavailable items from the final output
+            {
+                $match: {
+                    "liveProduct": { $ne: [] },                 // Product must still exist in dashboard
+                    "liveProduct.isAvailable": { $ne: false }   // Product must be active
                 }
             },
             
-            // 4. Sort from most items sold to fewest
-            { 
-                $sort: { totalSold: -1 } 
-            },
-            
-            // 5. Limit the dataset to the top 4 items for your landing page grid
+            // 7. Limit to top 4 only after checking existence and availability
             { 
                 $limit: 4 
             }
         ]);
 
-        // 6. Map the data format to cleanly match your frontend LandingPage mapping
+        // 8. Map to match your landing page structure[cite: 7, 8]
         const formattedProducts = bestSellers.map(item => ({
             id: item._id,
             name: item.name,
             price: `Rs. ${item.price.toLocaleString()}`,
-            rating: "⭐⭐⭐⭐⭐", // Hardcoded or calculated fallback placeholder
+            rating: "⭐⭐⭐⭐⭐", 
             img: item.img || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500"
         }));
 
