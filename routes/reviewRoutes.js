@@ -1,8 +1,9 @@
 import express from 'express';
-import { createReview, getProductReviews } from '../controllers/reviewController.js';
+import { createReview, getProductReviews, getHomepageTestimonials } from '../controllers/reviewController.js';
 
 const reviewrouter = express.Router();
 
+reviewrouter.get('/testimonials', getHomepageTestimonials); // New route for homepage testimonials
 // Public route to view reviews
 reviewrouter.get('/:productId', getProductReviews);
 

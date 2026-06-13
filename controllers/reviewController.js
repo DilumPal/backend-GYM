@@ -30,9 +30,27 @@ export const createReview = async (req, res) => {
 // @route   GET /api/reviews/:productId
 export const getProductReviews = async (req, res) => {
     try {
-        const reviews = await Review.find({ product: req.params.productId }).sort({ createdAt: -1 });
+        const { productId } = req.params;
+
+        // 1. Try to find the product document matching the custom string ID (e.g., "CARDIO002")
+        let productDoc = await Product.findOne({ productID: productId });
+
+        // 2. Fallback: If not found by custom ID, check if it's a valid MongoDB ObjectId
+        if (!productDoc && productId.match(/^[0-9a-fA-F]{24}$/)) {
+            productDoc = await Product.findById(productId);
+        }
+
+        // 3. If no product matches either identification strategy, return empty or 404
+        if (!productDoc) {
+            return res.status(200).json({
+                reviews: [],
+                stats: { averageRating: "0.0", totalReviews: 0 }
+            });
+        }
+
+        // 4. Query reviews using the matching internal MongoDB _id
+        const reviews = await Review.find({ product: productDoc._id }).sort({ createdAt: -1 });
         
-        // Calculate dynamic stats if needed on the fly
         const totalReviews = reviews.length;
         const averageRating = totalReviews > 0 
             ? reviews.reduce((acc, item) => item.rating + acc, 0) / totalReviews 
@@ -45,6 +63,20 @@ export const getProductReviews = async (req, res) => {
                 totalReviews
             }
         });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export const getHomepageTestimonials = async (req, res) => {
+    try {
+        // Updated query pipeline: removes specific 5-star conditions to fetch all recent input
+        const testimonials = await Review.find({}) 
+            .sort({ createdAt: -1 }) // Keeps newest items first
+            .limit(3) // Changed from 6 down to exactly 3 slots
+            .populate('product', 'name'); 
+
+        res.status(200).json(testimonials);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
