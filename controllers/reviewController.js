@@ -1,5 +1,6 @@
 import Review from '../models/review.js';
 import Product from '../models/product.js';
+import User from '../models/user.js';
 
 export const createReview = async (req, res) => {
     const { productId, rating, comment } = req.body;
@@ -19,13 +20,18 @@ export const createReview = async (req, res) => {
             return res.status(404).json({ message: "Product not found to add review" });
         }
 
-        const userId = req.user.userId; 
-        const reviewerName = `${req.user.firstName} ${req.user.lastName}`.trim(); 
+        // 👈 FIND THE USER OBJECT VIA THE EMAIL FROM THE TOKEN
+        const userDoc = await User.findOne({ email: req.user.email });
+        if (!userDoc) {
+            return res.status(404).json({ message: "User account not found" });
+        }
+        
+        const reviewerName = `${req.user.firstName} ${req.user.lastName}`.trim();
         
         const review = new Review({
-            product: productDoc._id, 
-            user: userId, 
-            reviewerName: reviewerName || "Anonymous Buyer", 
+            product: productDoc._id,
+            user: userDoc._id, // 👈 FIX: Pass the newly found user document ID here
+            reviewerName: reviewerName || "Anonymous Buyer",
             rating: Number(rating),
             comment
         });
