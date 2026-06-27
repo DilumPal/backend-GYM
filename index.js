@@ -14,7 +14,7 @@ const app = express();
 
 // 1. FIXED CORS CONFIGURATION FOR CREDENTIALS
 app.use(cors({
-    origin: 'http://localhost:5173', // Allow your React Vite frontend origin
+    origin: 'https://frontend-gym-phi.vercel.app', // Allow your React Vite frontend origin
     credentials: true,                // Allow authorization headers/cookies
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -25,7 +25,7 @@ app.use(bodyParser.json());
 // 2. CLEANED UP JWT AUTHENTICATION MIDDLEWARE
 app.use((req, res, next) => {
     const tokenString = req.header("Authorization");
-    
+
     if (tokenString != null) {
         const token = tokenString.replace("Bearer ", "");
         console.log(token);
